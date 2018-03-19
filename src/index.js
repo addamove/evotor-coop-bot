@@ -7,15 +7,15 @@ const { Bot } = require('@dlghq/dialog-bot-sdk');
 
 const bot = new Bot({
   quiet: true,
-  endpoints: ['wss://ws1.coopintl.com'],
-  username: 'testbot',
-  password: '666',
+  endpoints: ['wss://ws1.dlg.im'],
+  username: 'mention_bot',
+  password: 'eTy)xnyMX93:CGpjEV-Wsi!V',
 });
 
 const adminGroup = {
   type: 'group',
-  id: 765453992,
-  key: 'g765453992',
+  id: 162263878,
+  key: 'g162263878',
 };
 
 const groupIDs = [24538850, 1669311672];
