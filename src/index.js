@@ -4,43 +4,140 @@ TODO
 */
 
 const { Bot } = require('@dlghq/dialog-bot-sdk');
+const { users, init } = require('./users');
+const API = require('./API');
 
 const bot = new Bot({
   quiet: true,
-  endpoints: ['wss://ws1.dlg.im'],
-  username: 'mention_bot',
-  password: 'eTy)xnyMX93:CGpjEV-Wsi!V',
+  endpoints: ['wss://ws1.coopintl.com'],
+  username: 'testbot',
+  password: '666'
 });
 
-const adminGroup = {
-  type: 'group',
-  id: 162263878,
-  key: 'g162263878',
-};
-
-const groupIDs = [24538850, 1669311672];
-
-function isGroupValid(id) {
-  const res = groupIDs.find(e => id === e);
-  if (res) {
-    return res;
+function changePageIterator(event, goodsLength) {
+  if (event.value.split('#')[1] === 'prev') {
+    users[event.ref.peer.id].i -= 1;
+    if (users[event.ref.peer.id].i <= 0) {
+      users[event.ref.peer.id].i = 1;
+    }
+  } else {
+    if (users[event.ref.peer.id].i >= Math.ceil(goodsLength / 10)) {
+      return;
+    }
+    users[event.ref.peer.id].i += 1;
   }
-  return false;
 }
 
-bot.onMessage(async (peer, message) => {
-  if (isGroupValid(peer.id) && message.content.text.split(' ')[0] === '@testbot') {
-    try {
-      const messenger = await bot.ready;
+function paginate(array, pageSize, pageNumber) {
+  pageNumber -= 1; // because pages logically start with 1, but technically with 0
+  return array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize);
+}
 
-      const groupInfo = await messenger.getGroup(peer.id);
-      await bot.sendTextMessage(adminGroup, `*${groupInfo.name}*`, {
-        peer,
-        type: 'forward',
-        rids: [message.rid],
-      });
-    } catch (error) {
-      bot.sendTextMessage(peer, 'Что-то пошло не так.');
+function TellHowMuchGoodsLefted(event, goods) {
+  if (users[event.ref.peer.id].i === 1 && event.value.split('#')[1] !== 'prev') {
+    bot.sendInteractiveMessage(
+      event.ref.peer,
+      `Остатки:\n${paginate(goods, 10, users[event.ref.peer.id].i).join('\n')}`,
+      [
+        {
+          actions: [
+            {
+              id: 'q',
+              widget: {
+                type: 'button',
+                value: 'q_shop#next',
+                label: 'далее'
+              }
+            }
+          ]
+        },
+        {
+          actions: [
+            {
+              id: 'q',
+              widget: {
+                type: 'button',
+                value: 'q_shop#prev',
+                label: 'назад'
+              }
+            }
+          ]
+        }
+      ]
+    );
+  } else {
+    bot.editInteractiveMessage(
+      event.ref.peer,
+      event.ref.rid,
+      `Остатки:\n${paginate(goods, 10, users[event.ref.peer.id].i).join('\n')}`,
+      [
+        {
+          actions: [
+            {
+              id: 'q',
+              widget: {
+                type: 'button',
+                value: 'q_shop#next',
+                label: 'далее'
+              }
+            }
+          ]
+        },
+        {
+          actions: [
+            {
+              id: 'q',
+              widget: {
+                type: 'button',
+                value: 'q_shop#prev',
+                label: 'назад'
+              }
+            }
+          ]
+        }
+      ]
+    );
+  }
+}
+bot.onMessage(async peer => {
+  if (!users[peer.id]) {
+    init(peer.id);
+  }
+
+  bot.sendTextMessage(
+    peer,
+    'Меня зовут EvoRobot и я предназначен для удобного информирования тебя о данных по продажам.'
+  );
+  bot.sendInteractiveMessage(peer, 'Вот что я умею', [
+    {
+      actions: [
+        {
+          id: 'q',
+          widget: {
+            type: 'button',
+            value: 'quantity',
+            label: 'остатки'
+          }
+        }
+      ]
     }
+  ]);
+});
+
+bot.onInteractiveEvent(async event => {
+  if (event.value === 'quantity') {
+    const imes = await API.getShops();
+
+    bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
+  }
+
+  if (event.value.split('#')[0] === 'q_shop') {
+    const storeUuid = event.value.split('#')[1];
+    const goods = await API.getQuantity(storeUuid);
+
+    if (event.value.split('#')[1] === 'prev' || event.value.split('#')[1] === 'next') {
+      changePageIterator(event, goods.length);
+    }
+    TellHowMuchGoodsLefted(event, goods);
   }
 });

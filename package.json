@@ -12,14 +12,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@dlghq/dialog-bot-sdk": "^1.2.0",
+    "@dlghq/dialog-bot-sdk": "^1.2.3",
     "axios": "^0.17.1",
-    "dotenv": "^5.0.0",
+    "dotenv": "^5.0.1",
+    "node-fetch": "^2.1.2",
     "prettier-eslint": "^8.8.1",
     "watch-js": "0.0.7"
   },
   "devDependencies": {
     "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.8.0"
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.9.0"
   }
 }
