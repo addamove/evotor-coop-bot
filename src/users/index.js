@@ -4,7 +4,8 @@ const users = {
 
 function init(id) {
   users[id] = {
-    i: 1
+    i: 1,
+    auth: ''
   };
 }
 

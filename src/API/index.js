@@ -1,22 +1,14 @@
-const token = 'ef473a0a-fbfe-4e98-a9eb-2504761e50f7';
-
+// const token = 'ef473a0a-fbfe-4e98-a9eb-2504761e50f7';
+const { users } = require('../users');
 const axios = require('axios');
 
-// const auth = {
-//   headers: {'X-Authorization': token}
-// }
-
-// function setToken(token) {
-//   auth.headers['X-Authorization'] = token
-// }
-
-function getShops() {
-  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops.json';
+function getShops(id) {
+  const URL = 'https://api.evotor.ru/api/v1/inventories/stores/search';
   const shopsNames = [];
 
   return new Promise((resolve, reject) => {
     axios
-      .get(URL)
+      .get(URL, users[id].auth)
       .then(r => {
         r.data.map(element => {
           if (element) {
@@ -46,14 +38,14 @@ function getShops() {
   });
 }
 
-function getQuantity(storeUuid) {
-  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/3/inventories.json';
-  // const URL = `https://api.evotor.ru/api/v1/inventories/stores/${storeUuid}/products`
+function getQuantity(storeUuid, id) {
+  // const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/3/inventories.json';
+  const URL = `https://api.evotor.ru/api/v1/inventories/stores/${storeUuid}/products`;
   const goods = [];
 
   return new Promise((resolve, reject) => {
     axios
-      .get(URL)
+      .get(URL, users[id].auth)
       .then(r => {
         r.data.map(e => {
           if (e) {

@@ -99,9 +99,18 @@ function TellHowMuchGoodsLefted(event, goods) {
     );
   }
 }
-bot.onMessage(async peer => {
+
+bot.onMessage(async (peer, message) => {
+  console.log(JSON.stringify(users.auth));
   if (!users[peer.id]) {
     init(peer.id);
+    bot.sendTextMessage(peer, 'Пришлите свой токен.');
+    return;
+  } else if (users[peer.id].auth === '') {
+    users[peer.id].auth = {
+      headers: { 'X-Authorization': message.content.text }
+    };
+    bot.sendTextMessage(peer, 'Записали!');
   }
 
   bot.sendTextMessage(
@@ -126,14 +135,22 @@ bot.onMessage(async peer => {
 
 bot.onInteractiveEvent(async event => {
   if (event.value === 'quantity') {
-    const imes = await API.getShops();
+    try {
+      const imes = await API.getShops(event.ref.peer.id);
 
-    bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
+      bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
+    } catch (error) {
+      bot.sendTextMessage(
+        event.ref.peer,
+        'К сожалению ваш токен не подходит.\nПришлите свой токен.'
+      );
+      init(event.ref.peer.id);
+    }
   }
 
   if (event.value.split('#')[0] === 'q_shop') {
     const storeUuid = event.value.split('#')[1];
-    const goods = await API.getQuantity(storeUuid);
+    const goods = await API.getQuantity(storeUuid, event.ref.peer.id);
 
     if (event.value.split('#')[1] === 'prev' || event.value.split('#')[1] === 'next') {
       changePageIterator(event, goods.length);
