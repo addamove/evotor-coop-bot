@@ -6,6 +6,7 @@ TODO
 const { Bot } = require('@dlghq/dialog-bot-sdk');
 const { users, init } = require('./users');
 const API = require('./API');
+const path = require('path');
 
 const bot = new Bot({
   quiet: true,
@@ -101,10 +102,23 @@ function TellHowMuchGoodsLefted(event, goods) {
 }
 
 bot.onMessage(async (peer, message) => {
-  console.log(JSON.stringify(users.auth));
   if (!users[peer.id]) {
     init(peer.id);
     bot.sendTextMessage(peer, 'Пришлите свой токен.');
+    bot.sendInteractiveMessage(peer, 'Я не знаю что такое токен.', [
+      {
+        actions: [
+          {
+            id: 'q',
+            widget: {
+              type: 'button',
+              value: 'tokenHelp',
+              label: 'помощь'
+            }
+          }
+        ]
+      }
+    ]);
     return;
   } else if (users[peer.id].auth === '') {
     users[peer.id].auth = {
@@ -134,6 +148,9 @@ bot.onMessage(async (peer, message) => {
 });
 
 bot.onInteractiveEvent(async event => {
+  if (event.value === 'tokenHelp') {
+    bot.sendImageMessage(event.ref.peer, path.join(__dirname, `./images/1_a.png`));
+  }
   if (event.value === 'quantity') {
     try {
       const imes = await API.getShops(event.ref.peer.id);
