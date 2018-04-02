@@ -16,7 +16,7 @@ const bot = new Bot({
   password: '666'
 });
 
-bot.onMessage(async peer => {
+bot.onMessage(async (peer, message) => {
   if (!users[peer.id]) {
     init(peer.id);
     bot.sendTextMessage(peer, 'Пришлите свой токен.');
