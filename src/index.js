@@ -6,7 +6,9 @@ TODO
 const { Bot } = require('@dlghq/dialog-bot-sdk');
 const { users, init } = require('./users');
 const API = require('./API');
+const report = require('./report');
 const { tellHowMuchGoodsLefted, changePageIterator } = require('./goodsLefted');
+const _ = require('lodash/core');
 
 const bot = new Bot({
   quiet: true,
@@ -31,7 +33,19 @@ bot.onMessage(async peer => {
           id: 'q',
           widget: {
             type: 'button',
-            value: 'quantity',
+            value: 'report',
+            label: 'отчет'
+          }
+        }
+      ]
+    },
+    {
+      actions: [
+        {
+          id: 'q',
+          widget: {
+            type: 'button',
+            value: 'goodsLeft',
             label: 'остатки'
           }
         }
@@ -41,13 +55,17 @@ bot.onMessage(async peer => {
 });
 
 bot.onInteractiveEvent(async event => {
-  if (event.value === 'quantity') {
-    const imes = await API.getShops();
-
+  if (event.value === 'goodsLeft') {
+    const imes = await API.getShopsActions();
+    users[event.ref.peer.id].action = 'goodsLeft';
     bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
   }
+
   // goodsLeftedCount
-  if (event.value.split('#')[0] === 'q_shop') {
+  if (
+    event.value.split('#')[0] === 'shop' &&
+    users[event.ref.peer.id].action === 'goodsLeft'
+  ) {
     const storeUuid = event.value.split('#')[1];
     const goods = await API.getQuantity(storeUuid);
 
@@ -55,5 +73,19 @@ bot.onInteractiveEvent(async event => {
       changePageIterator(event, goods.length);
     }
     tellHowMuchGoodsLefted(bot, event, goods);
+  }
+
+  // 24hourReport
+  if (event.value === 'report') {
+    if (!_.has(users[event.ref.peer.id], 'reportCache')) {
+      bot.sendTextMessage(
+        event.ref.peer,
+        'Занесли вас в базу данных, результат будет через 24 часа. Попробуйте еще раз завтра.'
+      );
+
+      report.storeGoodsCount(event.ref.peer.id);
+    } else {
+      report.getChanges(event.ref.peer.id);
+    }
   }
 });
