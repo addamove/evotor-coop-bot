@@ -69,7 +69,7 @@ function getShops() {
 }
 
 function getQuantity(storeUuid) {
-  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/3/inventories.json';
+  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/1/inventories.json';
   // const URL = `https://api.evotor.ru/api/v1/inventories/stores/${storeUuid}/products`
   const goods = [];
 
@@ -92,7 +92,7 @@ function getQuantity(storeUuid) {
   });
 }
 function getGoods(storeUuid) {
-  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/3/inventories.json';
+  const URL = 'https://evotor-f15fb.firebaseio.com/1/shops/1/inventories.json';
   // const URL = `https://api.evotor.ru/api/v1/inventories/stores/${storeUuid}/products`
   const goods = [];
 

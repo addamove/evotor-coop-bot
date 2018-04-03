@@ -7,7 +7,8 @@ const { Bot } = require('@dlghq/dialog-bot-sdk');
 const { users, init } = require('./users');
 const API = require('./API');
 const report = require('./report');
-const { tellHowMuchGoodsLefted, changePageIterator } = require('./goodsLefted');
+const { tellHowMuchGoodsLefted } = require('./goodsLefted');
+const { changePageIterator } = require('./util');
 const _ = require('lodash/core');
 
 const bot = new Bot({
@@ -18,6 +19,10 @@ const bot = new Bot({
 });
 
 bot.onMessage(async peer => {
+  if (peer.type !== 'user') {
+    return;
+  }
+
   if (!users[peer.id]) {
     init(peer.id);
   }
@@ -85,7 +90,9 @@ bot.onInteractiveEvent(async event => {
 
       report.storeGoodsCount(event.ref.peer.id);
     } else {
-      report.getChanges(event.ref.peer.id);
+      await bot.sendTextMessage(event.ref.peer, "Формируем ваш отчет.")
+      const rep = await report.getChanges(event.ref.peer.id);
+      await bot.sendTextMessage(event.ref.peer, rep);
     }
   }
 });

@@ -1,46 +1,62 @@
 const API = require('../API');
 const { users } = require('../users');
+const { paginate } = require('../util');
 
-const storeGoodsCount = async id => {
-  let res = [];
+const storeGoodsCount = id =>
+  new Promise((resolved, rejected) => {
+    API.getShops()
+      .then(
+        async shops =>
+          new Promise(async (resolve, reject) => {
+            await shops.map(async shop => {
+              try {
+                const goods = await API.getGoods(shop.uuid);
 
-  await API.getShops().then(async shops => {
-    console.log(`${shops} shops`);
-    await shops.map(async shop => {
-      console.log(shop);
+                let res = [];
+                res = goods.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity
+                }));
 
-      const goods = await API.getGoods(shop.uuid);
-
-      res = goods.map(item => ({
-        name: item.name,
-        quantity: item.quantity
-      }));
-
-      console.log(res);
-    });
-
-    users[id].reportCache = res;
-    return res;
+                resolve(res);
+              } catch (error) {
+                console.log(error);
+                reject(error);
+              }
+            });
+          })
+      )
+      .then(r => {
+        users[id].reportCache = r;
+        console.log(`${r[0].quantity} res`);
+        resolved(r);
+      });
   });
-};
 
-const getChanges = id => {
+const getChanges = async id => {
   const orig = users[id].reportCache;
-  const update = storeGoodsCount(id);
+  const updated = await storeGoodsCount(id);
   const difference = [];
 
   orig.map((item, index) => {
-    if (item.quantity < update[index].quantity && item.name === update[index].name) {
+    if (item.quantity > updated[index].quantity && item.name === updated[index].name) {
       difference.push({
-        name: update[index].name,
-        difference: item.quantity - update[index].quantity
+        name: updated[index].name,
+        difference: item.quantity - updated[index].quantity
       });
     }
   });
 
-  console.log(difference);
+  if (difference.length === 0) {
+    return 'Подаж не было.';
+  }
+  const res = paginate(
+    difference.map(item => `Продано ${item.name} ${item.difference}шт`),
+    10,
+    1
+  ).join('\n');
 
-  return difference;
+  return res;
 };
 
 module.exports = {
