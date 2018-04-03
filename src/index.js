@@ -6,8 +6,11 @@ TODO
 const { Bot } = require('@dlghq/dialog-bot-sdk');
 const { users, init } = require('./users');
 const API = require('./API');
-const { tellHowMuchGoodsLefted, changePageIterator } = require('./goodsLefted');
 const path = require('path');
+const report = require('./report');
+const { tellHowMuchGoodsLefted } = require('./goodsLefted');
+const { changePageIterator } = require('./util');
+const _ = require('lodash/core');
 
 const bot = new Bot({
   quiet: true,
@@ -16,7 +19,11 @@ const bot = new Bot({
   password: '666'
 });
 
-bot.onMessage(async peer => {
+bot.onMessage(async (peer, message) => {
+  if (peer.type !== 'user') {
+    return;
+  }
+
   if (!users[peer.id]) {
     init(peer.id);
     bot.sendTextMessage(peer, 'Пришлите свой токен.');
@@ -53,7 +60,19 @@ bot.onMessage(async peer => {
           id: 'q',
           widget: {
             type: 'button',
-            value: 'quantity',
+            value: 'report',
+            label: 'отчет'
+          }
+        }
+      ]
+    },
+    {
+      actions: [
+        {
+          id: 'q',
+          widget: {
+            type: 'button',
+            value: 'goodsLeft',
             label: 'остатки'
           }
         }
@@ -67,21 +86,22 @@ bot.onInteractiveEvent(async event => {
     bot.sendImageMessage(event.ref.peer, path.join(__dirname, `./images/1.png`));
     bot.sendImageMessage(event.ref.peer, path.join(__dirname, `./images/2.png`));
   }
-  if (event.value === 'quantity') {
-    try {
-      const imes = await API.getShops(event.ref.peer.id);
 
-      bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
-    } catch (error) {
-      bot.sendTextMessage(
-        event.ref.peer,
-        'К сожалению ваш токен не подходит.\nПришлите свой токен.'
-      );
-      init(event.ref.peer.id);
+  if (event.value === 'goodsLeft') {
+    const imes = await API.getShopsActions(event.ref.peer.id);
+    users[event.ref.peer.id].action = 'goodsLeft';
+    if (imes === []) {
+      bot.sendTextMessage(event.ref.peer, 'У вас нету зарегестрированных магазинов.');
+      return;
     }
+    bot.sendInteractiveMessage(event.ref.peer, 'Выберите магазин', imes);
   }
+
   // goodsLeftedCount
-  if (event.value.split('#')[0] === 'q_shop') {
+  if (
+    event.value.split('#')[0] === 'shop' &&
+    users[event.ref.peer.id].action === 'goodsLeft'
+  ) {
     const storeUuid = event.value.split('#')[1];
     const goods = await API.getQuantity(storeUuid, event.ref.peer.id);
 
@@ -89,5 +109,31 @@ bot.onInteractiveEvent(async event => {
       changePageIterator(event, goods.length);
     }
     tellHowMuchGoodsLefted(bot, event, goods);
+  }
+
+  // 24hourReport
+  if (event.value === 'report') {
+    if (!_.has(users[event.ref.peer.id], 'reportCache')) {
+      try {
+        await report.storeGoodsCount(event.ref.peer.id);
+
+        bot.sendTextMessage(
+          event.ref.peer,
+          'Занесли вас в базу данных, результат будет через 24 часа. Попробуйте еще раз завтра.'
+        );
+      } catch (error) {
+        if (error === 0) {
+          bot.sendTextMessage(event.ref.peer, 'Ошибка! У вас нету зарегестрированных магазинов.');
+
+        } else {
+          bot.sendTextMessage(event.ref.peer, 'Неизвестная ошибка!');
+
+        }
+      }
+    } else {
+      await bot.sendTextMessage(event.ref.peer, 'Формируем ваш отчет.');
+      const rep = await report.getChanges(event.ref.peer.id);
+      await bot.sendTextMessage(event.ref.peer, rep);
+    }
   }
 });
