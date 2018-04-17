@@ -48,7 +48,7 @@ const getChanges = async id => {
   });
 
   if (difference.length === 0) {
-    return 'Подаж не было.';
+    return 'Продаж не было.';
   }
   const res = paginate(
     difference.map(item => `Продано ${item.name} ${item.difference}шт`),
